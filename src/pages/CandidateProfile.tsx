@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileUp, Save, GitHub, Linkedin } from "lucide-react";
+import { FileUp, Save, Github, Linkedin } from "lucide-react";
 
 const CandidateProfile = () => {
   return (
@@ -68,7 +67,7 @@ const CandidateProfile = () => {
                   <Label htmlFor="github">GitHub Profile</Label>
                   <div className="flex">
                     <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground">
-                      <GitHub className="h-4 w-4" />
+                      <Github className="h-4 w-4" />
                     </span>
                     <Input id="github" className="rounded-l-none" defaultValue="github.com/alexjohnson" />
                   </div>

@@ -72,6 +72,19 @@ const MessageCenter = ({ userType }: MessageCenterProps) => {
     convo => convo.id === selectedConversation
   );
 
+  // Transform messages to match the expected MessageThread format
+  const transformMessages = (messages: any[]) => {
+    if (!messages) return [];
+    
+    return messages.map(msg => ({
+      id: msg.id,
+      senderId: msg.fromUser ? 'currentUser' : 'otherUser',
+      content: msg.text,
+      timestamp: msg.timestamp,
+      isRead: true
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -175,10 +188,12 @@ const MessageCenter = ({ userType }: MessageCenterProps) => {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 p-0 flex flex-col h-[400px]">
-                <MessageThread 
-                  messages={selectedConversationData.messages}
-                  currentUserType={userType}
-                />
+                {selectedConversationData.messages && (
+                  <MessageThread 
+                    messages={transformMessages(selectedConversationData.messages)}
+                    currentUserType={userType}
+                  />
+                )}
               </CardContent>
             </Card>
           ) : (
