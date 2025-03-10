@@ -12,7 +12,22 @@ import CandidateDashboard from "./pages/CandidateDashboard";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// New imports for Phase 2
+import RecruiterSavedSearches from "./pages/RecruiterSavedSearches";
+import CandidateProfile from "./pages/CandidateProfile";
+import RecruiterProfile from "./pages/RecruiterProfile";
+import SearchResults from "./pages/SearchResults";
+import MessageCenter from "./pages/MessageCenter";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,7 +41,7 @@ const App = () => (
           <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
           <Route path="/register/:userType" element={<Layout><RegisterPage /></Layout>} />
           
-          {/* These routes would have auth protection in a real implementation */}
+          {/* Candidate routes */}
           <Route 
             path="/candidate/dashboard" 
             element={
@@ -36,10 +51,60 @@ const App = () => (
             } 
           />
           <Route 
+            path="/candidate/profile" 
+            element={
+              <Layout userType="candidate" userName="Alex Johnson">
+                <CandidateProfile />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/candidate/messages" 
+            element={
+              <Layout userType="candidate" userName="Alex Johnson">
+                <MessageCenter userType="candidate" />
+              </Layout>
+            } 
+          />
+          
+          {/* Recruiter routes */}
+          <Route 
             path="/recruiter/dashboard" 
             element={
-              <Layout userType="recruiter" userName="Recruiter Name">
+              <Layout userType="recruiter" userName="Taylor Smith">
                 <RecruiterDashboard />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/recruiter/saved" 
+            element={
+              <Layout userType="recruiter" userName="Taylor Smith">
+                <RecruiterSavedSearches />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/recruiter/profile" 
+            element={
+              <Layout userType="recruiter" userName="Taylor Smith">
+                <RecruiterProfile />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/recruiter/search" 
+            element={
+              <Layout userType="recruiter" userName="Taylor Smith">
+                <SearchResults />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/recruiter/messages" 
+            element={
+              <Layout userType="recruiter" userName="Taylor Smith">
+                <MessageCenter userType="recruiter" />
               </Layout>
             } 
           />
