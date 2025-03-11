@@ -22,7 +22,7 @@ const AuthCallback = () => {
 
         if (!sessionData.session) {
           console.log("No session found");
-          navigate("/login");
+          navigate("/login", { replace: true });
           return;
         }
 
@@ -44,7 +44,19 @@ const AuthCallback = () => {
         // If profile exists, redirect to the appropriate dashboard
         if (existingProfile) {
           console.log("Existing profile found, redirecting to:", existingProfile.user_type);
+          
+          // Get the user's name from their profile or session
+          const userName = existingProfile.full_name || 
+                           sessionData.session.user.user_metadata?.full_name || 
+                           sessionData.session.user.user_metadata?.name || 
+                           "User";
+          
           const path = existingProfile.user_type === "candidate" ? "/candidate/dashboard" : "/recruiter/dashboard";
+          
+          // Store user info in localStorage for easy access across the app
+          localStorage.setItem("userType", existingProfile.user_type);
+          localStorage.setItem("userName", userName);
+          
           navigate(path, { replace: true });
           return;
         }
@@ -72,6 +84,11 @@ const AuthCallback = () => {
         }
 
         console.log("Creating new profile with user type:", userType);
+        
+        // Get user's name from metadata if available
+        const userName = sessionData.session.user.user_metadata?.full_name || 
+                         sessionData.session.user.user_metadata?.name || 
+                         null;
 
         // Create a new profile for the user
         const { error: insertError } = await supabase
@@ -80,6 +97,7 @@ const AuthCallback = () => {
             { 
               id: userId, 
               user_type: userType,
+              full_name: userName,
               created_at: new Date().toISOString(),
             }
           ]);
@@ -88,6 +106,10 @@ const AuthCallback = () => {
           console.error("Profile creation error:", insertError);
           throw new Error(insertError.message);
         }
+
+        // Store user info in localStorage for easy access across the app
+        localStorage.setItem("userType", userType);
+        if (userName) localStorage.setItem("userName", userName);
 
         // Redirect to the appropriate dashboard
         const path = userType === "candidate" ? "/candidate/dashboard" : "/recruiter/dashboard";
@@ -105,7 +127,7 @@ const AuthCallback = () => {
           description: error.message || "Something went wrong during authentication.",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate("/login", { replace: true });
       } finally {
         setIsLoading(false);
       }
