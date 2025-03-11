@@ -1,18 +1,66 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FaGoogle, FaGithub, FaLinkedin } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { userType } = useParams();
   const [selectedType, setSelectedType] = useState<string>(userType || "");
+  const [loading, setLoading] = useState<boolean>(false);
+  const { toast } = useToast();
 
-  const handleOAuthRegister = (provider: string) => {
-    // This will be implemented with actual OAuth integration
-    console.log(`Registering with ${provider} as ${selectedType}`);
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Redirect to appropriate dashboard based on user type
+        const path = selectedType === "candidate" ? "/candidate/dashboard" : "/recruiter/dashboard";
+        navigate(path);
+      }
+    };
+    checkSession();
+  }, [navigate, selectedType]);
+
+  const handleOAuthRegister = async (provider: string) => {
+    try {
+      setLoading(true);
+      
+      // Store user type in localStorage so we can access it after the OAuth redirect
+      localStorage.setItem("userType", selectedType);
+      
+      let { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider.toLowerCase() as any,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            // Pass user type as query param for processing after auth
+            user_type: selectedType,
+          }
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Authentication error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // If no user type is selected yet, show the selection screen
@@ -28,6 +76,7 @@ const RegisterPage = () => {
             <Button 
               className="w-full" 
               onClick={() => setSelectedType("candidate")}
+              disabled={loading}
             >
               I'm a Tech Professional
             </Button>
@@ -35,6 +84,7 @@ const RegisterPage = () => {
             <Button 
               className="w-full" 
               onClick={() => setSelectedType("recruiter")}
+              disabled={loading}
             >
               I'm a Recruiter
             </Button>
@@ -46,6 +96,7 @@ const RegisterPage = () => {
               <Button 
                 variant="link" 
                 onClick={() => navigate("/login")}
+                disabled={loading}
               >
                 Login
               </Button>
@@ -70,7 +121,8 @@ const RegisterPage = () => {
           <Button 
             variant="outline" 
             className="w-full flex items-center justify-center gap-2"
-            onClick={() => handleOAuthRegister("Google")}
+            onClick={() => handleOAuthRegister("google")}
+            disabled={loading}
           >
             <FaGoogle className="h-4 w-4" />
             <span>Continue with Google</span>
@@ -79,7 +131,8 @@ const RegisterPage = () => {
           <Button 
             variant="outline" 
             className="w-full flex items-center justify-center gap-2"
-            onClick={() => handleOAuthRegister("GitHub")}
+            onClick={() => handleOAuthRegister("github")}
+            disabled={loading}
           >
             <FaGithub className="h-4 w-4" />
             <span>Continue with GitHub</span>
@@ -88,7 +141,8 @@ const RegisterPage = () => {
           <Button 
             variant="outline" 
             className="w-full flex items-center justify-center gap-2"
-            onClick={() => handleOAuthRegister("LinkedIn")}
+            onClick={() => handleOAuthRegister("linkedin_oidc")}
+            disabled={loading}
           >
             <FaLinkedin className="h-4 w-4" />
             <span>Continue with LinkedIn</span>
@@ -101,6 +155,7 @@ const RegisterPage = () => {
             <Button 
               variant="link" 
               onClick={() => navigate("/login")}
+              disabled={loading}
             >
               Login
             </Button>
