@@ -12,26 +12,40 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log("Auth callback started");
         // Get the session data
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        if (sessionError || !sessionData.session) {
-          throw new Error(sessionError?.message || "Failed to get auth session");
+        if (sessionError) {
+          throw new Error(sessionError.message || "Failed to get auth session");
         }
 
+        if (!sessionData.session) {
+          console.log("No session found");
+          navigate("/login");
+          return;
+        }
+
+        console.log("Session found, user ID:", sessionData.session.user.id);
         const userId = sessionData.session.user.id;
         
         // Check if this user already has a profile
-        const { data: existingProfile } = await supabase
+        const { data: existingProfile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
 
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error("Profile fetch error:", profileError);
+          throw new Error(profileError.message);
+        }
+
         // If profile exists, redirect to the appropriate dashboard
         if (existingProfile) {
+          console.log("Existing profile found, redirecting to:", existingProfile.user_type);
           const path = existingProfile.user_type === "candidate" ? "/candidate/dashboard" : "/recruiter/dashboard";
-          navigate(path);
+          navigate(path, { replace: true });
           return;
         }
 
@@ -57,8 +71,10 @@ const AuthCallback = () => {
           }
         }
 
+        console.log("Creating new profile with user type:", userType);
+
         // Create a new profile for the user
-        const { error: profileError } = await supabase
+        const { error: insertError } = await supabase
           .from('profiles')
           .insert([
             { 
@@ -68,13 +84,15 @@ const AuthCallback = () => {
             }
           ]);
 
-        if (profileError) {
-          throw new Error(profileError.message);
+        if (insertError) {
+          console.error("Profile creation error:", insertError);
+          throw new Error(insertError.message);
         }
 
         // Redirect to the appropriate dashboard
         const path = userType === "candidate" ? "/candidate/dashboard" : "/recruiter/dashboard";
-        navigate(path);
+        console.log("Redirecting to:", path);
+        navigate(path, { replace: true });
         
         toast({
           title: "Successfully authenticated",

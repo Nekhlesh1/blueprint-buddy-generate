@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,21 +21,9 @@ const LoginPage = () => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        // Fetch user profile to determine user type
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', data.session.user.id)
-          .single();
-        
-        // Redirect to appropriate dashboard based on user type
-        if (profileData) {
-          const path = profileData.user_type === "candidate" ? "/candidate/dashboard" : "/recruiter/dashboard";
-          navigate(path);
-        } else {
-          // If user exists but no profile, redirect to register
-          navigate("/register");
-        }
+        console.log("Session detected on login page, redirecting to profile check");
+        // Redirect to auth callback to handle the profile check and dashboard redirection
+        navigate("/auth/callback");
       }
     };
     checkSession();
@@ -75,6 +62,9 @@ const LoginPage = () => {
           title: "Login successful",
           description: "You have been logged in successfully.",
         });
+        
+        // Redirect to the auth callback to handle profile check and redirection
+        navigate("/auth/callback");
       }
     } catch (error: any) {
       toast({
