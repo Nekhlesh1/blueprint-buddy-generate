@@ -35,7 +35,7 @@ const AuthCallback = () => {
           return;
         }
 
-        // If no profile exists, create one with user type from localStorage
+        // If no profile exists, create one with user type from localStorage or user's metadata
         let userType = localStorage.getItem("userType");
         
         // Clear the stored user type
@@ -44,7 +44,17 @@ const AuthCallback = () => {
         if (!userType) {
           // Try to get user type from URL if not in localStorage
           const params = new URLSearchParams(window.location.search);
-          userType = params.get("user_type") || "candidate"; // Default to candidate if not specified
+          userType = params.get("user_type") || null;
+          
+          // If still not found, try to get from user metadata
+          if (!userType && sessionData.session.user.user_metadata) {
+            userType = sessionData.session.user.user_metadata.user_type;
+          }
+          
+          // Default to candidate if still not specified
+          if (!userType) {
+            userType = "candidate";
+          }
         }
 
         // Create a new profile for the user

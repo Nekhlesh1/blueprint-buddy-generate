@@ -6,6 +6,8 @@ import { FaGoogle, FaGithub, FaLinkedin } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -13,6 +15,12 @@ const RegisterPage = () => {
   const [selectedType, setSelectedType] = useState<string>(userType || "");
   const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
+  
+  // Email registration states
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [showEmailForm, setShowEmailForm] = useState<boolean>(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -26,6 +34,94 @@ const RegisterPage = () => {
     };
     checkSession();
   }, [navigate, selectedType]);
+
+  const handleEmailRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      
+      // Validate input
+      if (!email || !password || !confirmPassword) {
+        toast({
+          title: "Missing fields",
+          description: "Please fill in all fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        toast({
+          title: "Password mismatch",
+          description: "Passwords do not match.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (password.length < 6) {
+        toast({
+          title: "Password too short",
+          description: "Password must be at least 6 characters long.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Store user type in localStorage so we can access it after the email verification
+      localStorage.setItem("userType", selectedType);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            user_type: selectedType,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Registration error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.user) {
+        toast({
+          title: "Registration successful",
+          description: "Please check your email to confirm your account.",
+        });
+        
+        // Create profile immediately for better user experience
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: data.user.id, 
+              user_type: selectedType,
+              created_at: new Date().toISOString(),
+            }
+          ]);
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOAuthRegister = async (provider: string) => {
     try {
@@ -107,7 +203,7 @@ const RegisterPage = () => {
     );
   }
 
-  // Show OAuth options once user type is selected
+  // Show registration options once user type is selected
   return (
     <div className="container mx-auto py-12 px-4 flex justify-center">
       <Card className="w-full max-w-md">
@@ -118,35 +214,112 @@ const RegisterPage = () => {
           <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
-            variant="outline" 
-            className="w-full flex items-center justify-center gap-2"
-            onClick={() => handleOAuthRegister("google")}
-            disabled={loading}
-          >
-            <FaGoogle className="h-4 w-4" />
-            <span>Continue with Google</span>
-          </Button>
+          {showEmailForm ? (
+            <form onSubmit={handleEmailRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password" 
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input 
+                  id="confirmPassword" 
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              
+              <Button 
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Create Account"}
+              </Button>
+              
+              <Button 
+                type="button"
+                variant="link" 
+                className="w-full"
+                onClick={() => setShowEmailForm(false)}
+                disabled={loading}
+              >
+                Back to all signup options
+              </Button>
+            </form>
+          ) : (
+            <>
+              <Button 
+                className="w-full" 
+                onClick={() => setShowEmailForm(true)}
+                disabled={loading}
+              >
+                Sign up with Email
+              </Button>
+              
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-muted-foreground/20"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
           
-          <Button 
-            variant="outline" 
-            className="w-full flex items-center justify-center gap-2"
-            onClick={() => handleOAuthRegister("github")}
-            disabled={loading}
-          >
-            <FaGithub className="h-4 w-4" />
-            <span>Continue with GitHub</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="w-full flex items-center justify-center gap-2"
-            onClick={() => handleOAuthRegister("linkedin_oidc")}
-            disabled={loading}
-          >
-            <FaLinkedin className="h-4 w-4" />
-            <span>Continue with LinkedIn</span>
-          </Button>
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => handleOAuthRegister("google")}
+                disabled={loading}
+              >
+                <FaGoogle className="h-4 w-4" />
+                <span>Continue with Google</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => handleOAuthRegister("github")}
+                disabled={loading}
+              >
+                <FaGithub className="h-4 w-4" />
+                <span>Continue with GitHub</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => handleOAuthRegister("linkedin_oidc")}
+                disabled={loading}
+              >
+                <FaLinkedin className="h-4 w-4" />
+                <span>Continue with LinkedIn</span>
+              </Button>
+            </>
+          )}
 
           <div className="text-center mt-6">
             <p className="text-sm text-muted-foreground mb-2">
